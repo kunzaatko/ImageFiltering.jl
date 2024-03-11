@@ -1,11 +1,10 @@
 using ImageFiltering, FFTW, LinearAlgebra, Profile, Random
-# using ProfileView
 using ComputationalResources
 
 FFTW.set_num_threads(parse(Int, get(ENV, "FFTW_NUM_THREADS", "1")))
 BLAS.set_num_threads(parse(Int, get(ENV, "BLAS_NUM_THREADS", string(Threads.nthreads() ÷ 2))))
 
-function benchmark(mats)
+function benchmark_new(mats)
     kernel = ImageFiltering.factorkernel(Kernel.LoG(1))
     Threads.@threads for mat in mats
         frame_filtered = deepcopy(mat[:, :, 1])
@@ -13,6 +12,18 @@ function benchmark(mats)
         for i in axes(mat, 3)
             frame = @view mat[:, :, i]
             imfilter!(r_cached, frame_filtered, frame, kernel)
+        end
+        return
+    end
+end
+function benchmark_old(mats)
+    kernel = ImageFiltering.factorkernel(Kernel.LoG(1))
+    Threads.@threads for mat in mats
+        frame_filtered = deepcopy(mat[:, :, 1])
+        r_noncached = CPU1(Algorithm.FFT())
+        for i in axes(mat, 3)
+            frame = @view mat[:, :, i]
+            imfilter!(r_noncached, frame_filtered, frame, kernel)
         end
         return
     end
@@ -26,11 +37,8 @@ function test(mats)
         f2 = deepcopy(mat[:, :, 1])
         r_noncached = CPU1(Algorithm.FFT())
         for i in axes(mat, 3)
-            frame = @view mat[:, :, i]
-            @info "imfilter! noncached"
-            imfilter!(r_noncached, f2, frame, kernel)
-            @info "imfilter! cached"
-            imfilter!(r_cached, f1, frame, kernel)
+            imfilter!(r_noncached, f2, deepcopy(mat[:, :, i]), kernel)
+            imfilter!(r_cached, f1, deepcopy(mat[:, :, i]), kernel)
             @show f1[1:4] f2[1:4]
             f1 ≈ f2 || error("f1 !≈ f2")
         end
@@ -38,42 +46,22 @@ function test(mats)
     end
 end
 
-function profile()
+function run()
     Random.seed!(1)
     nmats = 10
-    mats = [rand(Float32, rand(80:100), rand(80:100), rand(2000:3000)) for _ in 1:nmats]
-    GC.gc(true)
+    mats = [rand(Float64, rand(80:100), rand(80:100), rand(2000:3000)) for _ in 1:nmats]
 
-    # benchmark(mats)
+    benchmark_new(mats)
+    for _ in 1:3
+        @time "warm run of benchmark_new(mats)" benchmark_new(mats)
+    end
 
-    # for _ in 1:3
-    #     @time "warm run of benchmark(mats)" benchmark(mats)
-    # end
+    benchmark_old(mats)
+    for _ in 1:3
+        @time "warm run of benchmark_old(mats)" benchmark_old(mats)
+    end
 
     test(mats)
-
-    # Profile.clear()
-    # @profile benchmark(mats)
-
-    # Profile.print(IOContext(stdout, :displaysize => (24, 200)); C=true, combine=true, mincount=100)
-    # # ProfileView.view()
-    # GC.gc(true)
 end
 
-profile()
-
-using ImageFiltering
-using ImageFiltering.RFFT
-
-function mwe()
-    a = rand(Float64, 10, 10)
-    out1 = rfft(a)
-
-    buf = RFFT.RCpair{Float64}(undef, size(a))
-    rfft_plan = RFFT.plan_rfft!(buf)
-    copy!(buf, a)
-    out2 = complex(rfft_plan(buf))
-
-    return out1 ≈ out2
-end
-mwe()
+run()
