@@ -36,13 +36,12 @@ using ImageFiltering: borderinstance
     end
 end
 
-function supported_algs(img, kernel, border)
-    if eltype(img) isa AbstractFloat
-        (Algorithm.FIR(), Algorithm.FIRTiled(), Algorithm.FFT(), planned_fft(img, kernel, border))
-    else
-        # TODO: extend planned_fft to support other types
-        (Algorithm.FIR(), Algorithm.FIRTiled(), Algorithm.FFT())
-    end
+# TODO: extend planned_fft to support more types than just floats
+function supported_algs(img::AbstractArray{T}, kernel, border) where {T<:AbstractFloat}
+    return (Algorithm.FIR(), Algorithm.FIRTiled(), Algorithm.FFT(), planned_fft(img, kernel, border))
+end
+function supported_algs(img::AbstractArray, kernel, border)
+    return (Algorithm.FIR(), Algorithm.FIRTiled(), Algorithm.FFT())
 end
 
 @testset "FIR/FFT" begin
