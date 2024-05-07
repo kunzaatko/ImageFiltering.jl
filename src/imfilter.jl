@@ -878,11 +878,17 @@ function filtfft(A, krn, planned_rfft1::Function, planned_rfft2::Function, plann
     B .*= conj!(complex(planned_rfft2(krn)))
     return real(planned_irfft(complex(B)))
 end
-# TODO: this does not work. See TODO below
+# TODO: this Colorant method does not work. See TODO below
 function filtfft(A::AbstractArray{C}, krn, planned_rfft1::Function, planned_rfft2::Function, planned_irfft::Function) where {C<:Colorant}
     Av, dims = channelview_dims(A)
     kernrs = kreshape(C, krn)
     B = complex(planned_rfft1(Av, dims)) # TODO: dims is not supported by planned_rfft1
+    # Quoting Tim Holy in https://github.com/JuliaImages/ImageFiltering.jl/pull/271/files#r1559210348
+    # I don't think dims can be a point of flexibility: these plans are specific to the
+    # memory layout of the array. (The planning explores various implementations and picks
+    # the fastest discovered; performance is strongly dependent on memory layout, so the
+    # choice for one layout may not be the same as another.) You'd have to create a plan
+    # specifically to the colorant array-type.
     B .*= conj!(complex(planned_rfft2(kernrs)))
     Avf = real(planned_irfft(complex(B)))
     return colorview(base_colorant_type(C){eltype(Avf)}, Avf)
