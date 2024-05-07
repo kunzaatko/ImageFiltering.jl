@@ -1,7 +1,7 @@
 module ImageFiltering
 
 using FFTW
-using RFFT
+using RealFFTs
 using ImageCore, FFTViews, OffsetArrays, StaticArrays, ComputationalResources, TiledIteration
 # Where possible we avoid a direct dependency to reduce the number of [compat] bounds
 # using FixedPointNumbers: Normed, N0f8 # reexported by ImageCore

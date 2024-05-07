@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        julia-version: ['1.6', '1', 'nightly']
+        julia-version: ['1.6', '1']
         os: [ubuntu-latest, windows-latest, macOS-latest]
 
     steps:
@@ -25,11 +25,6 @@ jobs:
           version: ${{ matrix.julia-version }}
 
       - uses: julia-actions/cache@v1
-
-      - run: |
-          import Pkg
-          Pkg.add(Pkg.PackageSpec(url="https://github.com/HolyLab/RFFT.jl", rev="ib/add_copy"))
-        shell: julia --project --color=yes {0}
 
       - name: "Unit Test"
         uses: julia-actions/julia-runtest@v1

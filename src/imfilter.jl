@@ -841,16 +841,16 @@ function _imfilter_fft!(r::AbstractCPU{FFT},
 end
 
 function buffered_planned_rfft(a::AbstractArray{T}) where {T}
-    buf = RFFT.RCpair{T}(undef, size(a))
-    plan = RFFT.plan_rfft!(buf; flags=FFTW.MEASURE)
+    buf = RealFFTs.RCpair{T}(undef, size(a))
+    plan = RealFFTs.plan_rfft!(buf; flags=FFTW.MEASURE)
     return function (arr::AbstractArray{T}) where {T}
         copy!(buf, OffsetArrays.no_offset_view(arr))
         return plan(buf)
     end
 end
 function buffered_planned_irfft(a::AbstractArray{T}) where {T}
-    buf = RFFT.RCpair{T}(undef, size(a))
-    plan = RFFT.plan_irfft!(buf; flags=FFTW.MEASURE)
+    buf = RealFFTs.RCpair{T}(undef, size(a))
+    plan = RealFFTs.plan_irfft!(buf; flags=FFTW.MEASURE)
     return function (arr::AbstractArray{T}) where {T}
         copy!(buf, OffsetArrays.no_offset_view(arr))
         return plan(buf)
