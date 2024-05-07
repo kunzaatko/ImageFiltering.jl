@@ -49,10 +49,11 @@ Base.zero(::Type{WrappedFloat}) = WrappedFloat(0.0)
     # Element-type widening (issue #17)
     v = fill(0xff, 10)
     kern = centered(fill(0xff, 3))
-    @info "Two warnings are expected"
-    # TODO: use @test_logs (:warn, r"Likely overflow or conversion error detected") match_mode=:any
-    # julia has an internal error currently on 1.10.2 that this hits https://github.com/JuliaLang/julia/pull/50759
-    @test_throws InexactError imfilter(v, kern)
+
+    @test_logs (:warn, r"Likely overflow or conversion error detected") begin
+        @test_throws InexactError imfilter(v, kern)
+    end
+
     vout = imfilter(UInt32, v, kern)
     @test eltype(vout) == UInt32
     @test all(x->x==0x0002fa03, vout)
@@ -121,7 +122,9 @@ end
     # issue #17
     img = fill(typemax(Int16), 10, 10)
     kern = centered(Int16[1 2 2 2 1])
-    @test_throws InexactError imfilter(img, kern)
+    @test_logs (:warn, r"Likely overflow or conversion error detected") begin
+        @test_throws InexactError imfilter(img, kern)
+    end
     ret = imfilter(Int32, img, kern)
     @test eltype(ret) == Int32
     @test all(x->x==262136, ret)
